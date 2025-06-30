@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exfer"
+version = "0.1"
+description = "Provides clients for external inference providers such as OpenAI, OpenRouter, Anthropic, Google, etc."
+authors = [
+	{ name = "Chris Pikul", email = "ChrisPikul510@gmail.com" }
+]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+keywords = ["inference", "llm", "ai", "gpt", "generative", "request", "provider"]
+classifiers = [
+	"Development Status :: 1 - Planning",
+	"Intended Audience :: Developers",
+	"License :: OSI Approved :: MIT License",
+	"Programming Language :: Python :: 3",
+	"Topic :: Internet",
+	"Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+	"Topic :: Other/Nonlisted Topic",
+	"Topic :: Scientific/Engineering :: Artificial Intelligence",
+	"Topic :: Software Development",
+	"Topic :: Software Development :: Libraries",
+]
+dependencies = ["requests"]
+
+[project.urls]
+Homepage = "https://github.com/chris-pikul/py-exfer"
+Documentation = "https://github.com/chris-pikul/py-exfer/blob/main/README.md"
+Repository = "https://github.com/chris-pikul/py-exfer.git"
+Issues = "https://github.com/chris-pikul/py-exfer/issues"
+Changelog = "https://github.com/chris-pikul/py-exfer/blob/master/CHANGELOG.md"
