@@ -1,9 +1,12 @@
+from abc import ABC, abstractmethod
+from typing import Generator, Literal, Optional, Union, overload
+
 from .capabilities import Capability
 from .model import Model
 
 
-class BaseProvider:
-    """Base class for further providers which provide inference from an external API."""
+class BaseProvider(ABC):
+    """Abstract Base Class for further providers which provide inference from an external API."""
 
     key: str
     """Unique URL-safe key for this provider. Should be lower kebab-case and uses only ASCII characters."""
@@ -71,3 +74,42 @@ class BaseProvider:
         if model.key == "":
             raise Exception("cannot register model with an empty/unset key field")
         self.models[model.key] = model
+
+    @overload
+    def generate(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        stream: Literal[False] = False,
+        system_prompt: Optional[str] = None,
+    ) -> str: ...
+
+    @overload
+    def generate(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        stream: Literal[True],
+        system_prompt: Optional[str] = None,
+    ) -> Generator[str]: ...
+
+    @abstractmethod
+    def generate(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        stream: bool = False,
+        system_prompt: Optional[str] = None,
+    ) -> Union[str, Generator[str]]:
+        """Generate a text completion. Requires that the model supports `Compatibility.TEXT`.
+
+        Args:
+            model (str | Model): Key for the model to use, or the actual model card.
+            prompt (str): Given prompt string to provide as user context.
+            stream (bool, optional): Whether to use streaming. Defaults to False.
+            system_prompt (str, optional): An additional top-level system prompt to inject into the context. Defaults to None.
+
+        Returns:
+            Union[str, Generator[str]]: Either the complete response, or a generator which yields fragments (requires stream = True).
+        """
+        pass
