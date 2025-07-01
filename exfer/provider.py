@@ -5,23 +5,40 @@ from .capabilities import Capability
 from .model import Model
 
 
-class BaseProvider(ABC):
+class Provider(ABC):
     """Abstract Base Class for further providers which provide inference from an external API."""
-
-    key: str
-    """Unique URL-safe key for this provider. Should be lower kebab-case and uses only ASCII characters."""
-
-    name: str
-    """Human-friendly displayable name for this provider."""
 
     base_url: str
     """Base url for the provider in which API endpoints will be appended to. Should follow standard HTTP protocol and domain name. Does not need the ending slash."""
 
-    capabilities: list[Capability] = []
-    """List of capabilities the provider can offer. Will be used by a global provider class to choose the right provider for a given task."""
-
     models: dict[str, Model] = {}
     """Dictionary mapping model keys to their model definition. These are the available models within a given provider."""
+
+    def __init__(self, base_url: Optional[str] = None):
+        self.base_url = base_url or self._default_base_url()
+
+    @property
+    @abstractmethod
+    def key(self) -> str:
+        """Unique URL-safe key for this provider. Should be lower kebab-case and uses only ASCII characters."""
+        ...
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Human-friendly displayable name for this provider."""
+        ...
+
+    @property
+    @abstractmethod
+    def capabilities(self) -> list[Capability]:
+        """List of capabilities the provider can offer. Will be used by a global provider class to choose the right provider for a given task."""
+        ...
+
+    @abstractmethod
+    def _default_base_url(self) -> str:
+        """Return the default base URL for this provider."""
+        ...
 
     def path(self, *segments: str) -> str:
         """Combine the given segments and prefix it with this models `base_url` to form a complete URL. Does not perform splitting if the components contain their own slashes, but it will ensure that they are all separated by a slash.
@@ -93,7 +110,6 @@ class BaseProvider(ABC):
         system_prompt: Optional[str] = None,
     ) -> Generator[str]: ...
 
-    @abstractmethod
     def generate(
         self,
         model: Union[str, Model],
@@ -112,4 +128,16 @@ class BaseProvider(ABC):
         Returns:
             Union[str, Generator[str]]: Either the complete response, or a generator which yields fragments (requires stream = True).
         """
-        pass
+        if stream:
+            return self._generate_async(model, prompt, system_prompt)
+        return self._generate_sync(model, prompt, system_prompt)
+
+    @abstractmethod
+    def _generate_sync(
+        self, model: Union[str, Model], prompt: str, system_prompt: Optional[str] = None
+    ) -> str: ...
+
+    @abstractmethod
+    def _generate_async(
+        self, model: Union[str, Model], prompt: str, system_prompt: Optional[str] = None
+    ) -> Generator[str]: ...
