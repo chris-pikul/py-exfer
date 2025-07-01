@@ -1,3 +1,4 @@
+from typing import Optional
 from .capabilities import Capability
 
 
@@ -10,11 +11,35 @@ class Model:
     name: str
     """Human-friendly displayable name for this provider. Should exclude any version information."""
 
-    version: str
+    version: str = "latest"
     """Version of the model. Suggested format is SEMVER."""
+
+    tag: Optional[str] = None
+    """Optional tag that can be used to label quantization methods and bit sizing. """
 
     capabilities: list[Capability] = []
     """List of capabilities which this model provides. Can be more than one for multi-modal AI providers."""
+
+    def __eq__(self, other):
+        if isinstance(other, Model):
+            return self.key == other.key
+        elif type(other) is str:
+            return self.key == other
+        return False
+
+    def __hash__(self):
+        return hash((self.key, self.version, self.tag))
+
+    def __str__(self):
+        result = self.name
+        if self.tag is not None and self.tag != "":
+            result += ":" + self.tag
+        if self.version != "" and self.version != "latest":
+            result += "@" + self.version
+        return result
+
+    def __repr__(self):
+        return f"Model#{self.key}"
 
     def has_capability(
         self, capability: str | Capability | list[str | Capability]

@@ -14,6 +14,23 @@ class Provider(ABC):
     models: dict[str, Model] = {}
     """Dictionary mapping model keys to their model definition. These are the available models within a given provider."""
 
+    @staticmethod
+    @abstractmethod
+    def check_env() -> bool:
+        """Check if this Provider type might exist based on OS environment.
+
+        Returns:
+            bool: True if we believe there are settings or availability for this provider type.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def from_env(cls):
+        """Construct a new instance of this Provider type based on environment settings.
+        Should use `Provider.check_env()` first to ensure it is possible."""
+        return cls()
+
     def __init__(self, base_url: Optional[str] = None):
         self.base_url = base_url or self._default_base_url()
 
@@ -39,6 +56,31 @@ class Provider(ABC):
     def _default_base_url(self) -> str:
         """Return the default base URL for this provider."""
         ...
+
+    @property
+    def models_list(self) -> list[Model]:
+        """The available models in this Provider returned as a list."""
+        return [model for model in self.models.values()]
+
+    @property
+    def models_set(self) -> set[Model]:
+        return set(self.models_list)
+
+    def __eq__(self, other):
+        if isinstance(other, Provider):
+            return self.key == other.key
+        elif type(other) is str:
+            return self.key == other
+        return False
+
+    def __hash__(self):
+        return hash((self.key, self.base_url))
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"Provider#{self.key}"
 
     def path(self, *segments: str) -> str:
         """Combine the given segments and prefix it with this models `base_url` to form a complete URL. Does not perform splitting if the components contain their own slashes, but it will ensure that they are all separated by a slash.
