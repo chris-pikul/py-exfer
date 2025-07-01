@@ -1,8 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Generator, Literal, Optional, Union, overload
+from typing import Generator, Literal, Optional, Sequence, Union, overload
+from PIL.Image import Image
 
-from .capabilities import Capability
+from .capabilities import Capability, CapabilitiesException
 from .model import Model
+
+
+class ModelNotFoundException(Exception):
+    pass
 
 
 class Provider(ABC):
@@ -121,6 +126,35 @@ class Provider(ABC):
                 return True
         return False
 
+    def get_model(
+        self, model: Union[str, Model], capabilities: Optional[list[Capability]] = None
+    ) -> Model:
+        """Ensures a given model exists within this provider. Can additionally check the capabilities of the model.
+
+        Args:
+            model (Union[str, Model]): Either the model itself (for verification), or the key for a model.
+            capabilities (Optional[list[Capability]], optional): Capabilities to check for in the model. Defaults to None.
+
+        Raises:
+            ModelNotFoundException: If the model does not exist within this provider.
+            CapabilitiesException: If the capabilities where not None and did not match the models capabilities.
+
+        Returns:
+            Model: Model as it exists in this provider's data.
+        """
+        result: Model = (
+            self.models[model.key] if isinstance(model, Model) else self.models[model]
+        )
+        if result is None:
+            raise ModelNotFoundException(
+                f"model {model if type(model) is str else model.key} is not registered to the provider {self.key}"
+            )
+        if capabilities is not None and not result.has_capability(capabilities):
+            raise CapabilitiesException(
+                f"model {result.key} does not match the capabilities of {", ".join(capabilities)}"
+            )
+        return result
+
     def register_model(self, model: Model) -> None:
         """Adds or replaces a model within this provider. Uses the `model.key` field to set the `Model` within this provider's `models` dictionary. If the key already exists it will be replaced.
 
@@ -135,29 +169,32 @@ class Provider(ABC):
         self.models[model.key] = model
 
     @overload
-    def generate(
+    def generate_text(
         self,
         model: Union[str, Model],
         prompt: str,
         stream: Literal[False] = False,
         system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> str: ...
 
     @overload
-    def generate(
+    def generate_text(
         self,
         model: Union[str, Model],
         prompt: str,
         stream: Literal[True],
         system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> Generator[str]: ...
 
-    def generate(
+    def generate_text(
         self,
         model: Union[str, Model],
         prompt: str,
         stream: bool = False,
         system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> Union[str, Generator[str]]:
         """Generate a text completion. Requires that the model supports `Compatibility.TEXT`.
 
@@ -171,15 +208,23 @@ class Provider(ABC):
             Union[str, Generator[str]]: Either the complete response, or a generator which yields fragments (requires stream = True).
         """
         if stream:
-            return self._generate_async(model, prompt, system_prompt)
-        return self._generate_sync(model, prompt, system_prompt)
+            return self._generate_text_async(model, prompt, system_prompt)
+        return self._generate_text_sync(model, prompt, system_prompt)
 
     @abstractmethod
-    def _generate_sync(
-        self, model: Union[str, Model], prompt: str, system_prompt: Optional[str] = None
+    def _generate_text_sync(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> str: ...
 
     @abstractmethod
-    def _generate_async(
-        self, model: Union[str, Model], prompt: str, system_prompt: Optional[str] = None
+    def _generate_text_async(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> Generator[str]: ...

@@ -30,3 +30,7 @@ class Capability(StrEnum):
 
     TOOLS = "TOOLS"
     """Usage of tool calling by the model to help in accomplishing a given task. """
+
+
+class CapabilitiesException(Exception):
+    pass

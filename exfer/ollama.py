@@ -1,9 +1,10 @@
-from typing import Generator, Optional, Union
+from typing import Generator, Optional, Sequence, Union
+from PIL.Image import Image
 
 from .provider import Provider
 from .model import Model
 from .capabilities import Capability
-from .utils import ping
+from .utils import ping, encode_images
 
 
 class Ollama(Provider):
@@ -33,15 +34,52 @@ class Ollama(Provider):
     def _default_base_url(self) -> str:
         return "http://localhost:11434"
 
+    def _make_generate_request(
+        self,
+        model: Union[str, Model],
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
+        stream: bool = False,
+    ) -> dict:
+        capabilities = [Capability.TEXT]
+        if images is not None:
+            capabilities.append(Capability.VISION)
+
+        model = self.get_model(model, capabilities)
+
+        request: dict = {
+            "model": model.key,
+            "prompt": prompt,
+            "stream": stream,
+        }
+        if system_prompt is not None:
+            request["system"] = system_prompt
+        if images is not None:
+            request["images"] = encode_images(images)
+
+        return request
+
     def _generate_sync(
         self,
         model: Union[str, Model],
         prompt: str,
         system_prompt: Optional[str] = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> str:
+        request = self._make_generate_request(
+            model, prompt, system_prompt, images, False
+        )
         return ""
 
     def _generate_async(
-        self, model: str | Model, prompt: str, system_prompt: str | None = None
+        self,
+        model: str | Model,
+        prompt: str,
+        system_prompt: str | None = None,
+        images: Optional[Union[str, Image, Sequence[Union[str, Image]]]] = None,
     ) -> Generator[str, None, None]:
+        request = self._make_generate_request(
+            model, prompt, system_prompt, images, True
+        )
         yield ""

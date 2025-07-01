@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Sequence, Union
 from .capabilities import Capability
 
 
@@ -42,7 +42,7 @@ class Model:
         return f"Model#{self.key}"
 
     def has_capability(
-        self, capability: str | Capability | list[str | Capability]
+        self, capability: str | Capability | Sequence[Union[str, Capability]]
     ) -> bool:
         """Check if this model has a given capability. Accepts either a single argument, or a list of capabilities. In the case of a list, each entry must match to return true (AND).
 
